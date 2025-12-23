@@ -1,320 +1,114 @@
 # CatFinderSwipe Roadmap
 
-This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + URLSession + SwiftData + DocC + XCTest/Swift Testing).
+This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + SwiftData + DocC + XCTest/Swift Testing).
 
-## MVP (Swipe cats)
+## Guiding principles
 
-- [x] App boots into swipe UI (no template list UI)
-- [x] Fetch random cat metadata over the network
-- [x] Display cat photo in a swipeable card
-- [x] Swipe left = seen
-- [x] Swipe right = favorite + seen
-- [x] Favorites list screen
-# CatFinderSwipe Roadmap
+- No third-party dependencies (unless explicitly approved).
+- Offline-tolerant UI (clear messaging, no crashes).
+- Fast swipe loop (prefetch + caching).
+- Privacy-first (store locally, be explicit about network use).
 
-This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + URLSession + SwiftData + DocC + XCTest/Swift Testing).
-
-## MVP (Swipe cats)
+## MVP: Swipe cats (complete)
 
 - [x] App boots into swipe UI (no template list UI)
+  - [ ] Verify fresh install launches directly into swipe UI on a physical device.
 - [x] Fetch random cat metadata over the network
+  - [ ] Verify slow/failed network responses surface a friendly error and allow retry.
 - [x] Display cat photo in a swipeable card
+  - [ ] Verify rendering on small and large phones (light/dark mode).
 - [x] Swipe left = seen
+  - [ ] Verify "seen" persists across relaunch.
 - [x] Swipe right = favorite + seen
+  - [ ] Verify both favorite and seen are persisted in the same swipe.
 - [x] Favorites list screen
+  - [ ] Verify Favorites loads quickly with many items and no missing images crash.
 
-
-## Milestone 2 (Robustness)
-
-- [x] Loading/empty/error UI states refined
-- [x] Avoid repeats more aggressively (persist seen IDs, limit retries)
-- [x] Add simple “Clear data” debug option
-- [x] Add reachability-friendly messaging (don’t hard-crash on offline)
-
-## Milestone 3 (Caching & performance)
-
-- [ ] Image caching (memory + disk) to reduce network + speed up Favorites
-- [ ] Prefetch next image
-- [ ] Tune `URLCache` sizes and request policies
-- [ ] Image is scaled appropriately for device screen size / resolution
-- [ ] Image centering + aspect ratio handling
-- [ ] Image in center in box that extends to edges (no weird corners on rounded cards)
-- [ ] Background to be a random soild colour on every swipe
-
-## Milestone 3.1
-- [ ] Favorites grid view layout only with no file names
-- [ ] if photo is liked then random cat emjoicons bubble up from bottom of screen
-
-## Milestone 4 (Testing)
-
-- [ ] Decode tests for API responses (fixture JSON)
-- [ ] Service tests with stubbed URLSession
-- [ ] SwiftData store tests using in-memory containers
-- [ ] UI test: swipe right adds a favorite
-
-> Note: tests are intended to be run on a connected physical iPhone/iPad using `bash scripts/test_on_device.sh`.
-
-## Milestone 5 (Polish)
-
-- [x] Haptics on commit
-- [x] Accessibility labels for swipe actions
-- [x] App icon + launch polish
-
-## Milestone 6 fixes
-
-- [ ] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) forground
-- [ ] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) background
-- [ ] swiped images do not change size
-- [ ] remove "cats" title from top of swipe screen
-- [ ] hapics on swipe left also
-- [ ] happy cat emoji bubbling up on swipe right
-- [ ] sad cat emoji bubbling down on swipe left
-
-
-## Milestone 7 features
-
-- [ ] share favorite cat images from favorites screen via apple share sheet
-
-
-## Milestone 8 (Privacy, safety, compliance)
-
-- [ ] Add a privacy summary section in Settings/About (what is stored locally, what is fetched remotely)
-- [ ] App Tracking Transparency: confirm none needed; document rationale
-- [ ] Basic content disclaimer + “Report issue” link (opens Mail or GitHub)
-
-
-## Milestone 12 (Share & widgets)
-
-- [ ] Home Screen widget: “Random favorite” / “Recent favorite”
-- [ ] Share as image with watermark toggle (in-app render)
-- [ ] Save to Photos (with permission handling)
-
-
-## Non-goals (for now)
-
-- Accounts/login
-- Server-side favorites sync
-- Non-Swift tooling or build systems
-
-## Milestone 2 (Robustness)
+## Milestone 2: Robustness
 
 - [x] Loading/empty/error UI states refined
+  - [ ] Force each state on device (loading, empty, error) and confirm copy.
 - [x] Avoid repeats more aggressively (persist seen IDs, limit retries)
-- [x] Add simple “Clear data” debug option
-- [x] Add reachability-friendly messaging (don’t hard-crash on offline)
+  - [ ] Confirm repeat prevention across app relaunches.
+- [ ] Add simple "Clear Data" debug option
+  - [ ] Add a debug button that calls `CatDecisionStore.clearAll()` and clears image caches.
+- [ ] Add reachability-friendly messaging (no hard-crash when offline)
+  - [ ] Add `NWPathMonitor` and show offline state with retry guidance.
 
-## Milestone 3 (Caching & performance)
+## Milestone 3: Performance & caching
 
-- [ ] Image caching (memory + disk) to reduce network + speed up Favorites
-- [ ] Prefetch next image
-- [ ] Tune `URLCache` sizes and request policies
-- [ ] Image is scaled appropriately for device screen size / resolution
-- [ ] Image centering + aspect ratio handling
-- [ ] Image in center in box that extends to edges (no weird corners on rounded cards)
-- [ ] Background to be a random soild colour on every swipe
+- [x] Image caching (memory + disk) to reduce network + speed up Favorites
+  - [ ] Verify cache hits by logging or profiling repeated loads.
+- [x] Prefetch the next image while viewing the current card
+  - [ ] Confirm prefetch cancels in-flight work when the deck advances.
+- [ ] Tune cache sizes and eviction (memory + disk)
+  - [ ] Add disk size cap + eviction policy; validate memory cap impact.
+- [ ] Ensure images are requested/scaled appropriately per device size
+  - [ ] Downsample large images before caching to avoid oversized textures.
+- [x] Image centering + aspect ratio handling
+  - [ ] Verify no stretching or off-center crops across device sizes.
+- [x] Image fills the card with consistent rounded corners
+  - [ ] Verify no "corner gaps" or edge artifacts on swipe.
 
-## Milestone 3.1
-- [ ] Favorites grid view layout only with no file names
-- [ ] if photo is liked then random cat emjoicons bubble up from bottom of screen
-
-## Milestone 4 (Testing)
+## Milestone 4: Testing
 
 - [ ] Decode tests for API responses (fixture JSON)
-- [ ] Service tests with stubbed URLSession
+  - [ ] Add fixtures and decode tests under unit tests target.
+- [ ] Service tests with a stubbed `URLSession`
+  - [ ] Use a custom `URLProtocol` to return canned responses.
 - [ ] SwiftData store tests using in-memory containers
+  - [ ] Verify favorites/seen persistence and clear/reset logic.
 - [ ] UI test: swipe right adds a favorite
+  - [ ] Add UI test that validates favorites count after swiping.
+- [ ] UI test: swipe left marks seen and advances
+  - [ ] Add UI test that ensures deck advances and seen state updates.
 
-> Note: tests are intended to be run on a connected physical iPhone/iPad using `bash scripts/test_on_device.sh`.
-
-## Milestone 5 (Polish)
+## Milestone 5: Polish
 
 - [x] Haptics on commit
-- [x] Accessibility labels for swipe actions
+  - [ ] Verify haptics on a real device and respect system settings.
+- [ ] Accessibility labels and actions for swipe controls
+  - [ ] Add accessibility actions for "Like" and "Nope" on the card.
 - [x] App icon + launch polish
+  - [ ] Verify icon sizes and launch appearance on device.
 
-## Milestone 6 fixes
-[] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) forground
-[] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) background
-[] swiped images do not change size
-[] remove "cats" title from top of swipe screen
-[] hapics on swipe left also
-[] happy cat emoji bubbling up on swipe right
-[] sad cat emoji bubbling down on swipe left
+## Milestone 6: Layout & interactions
 
+- [x] Card layout: consistent rounded rectangle (95% wide, ~75% tall)
+  - [ ] Verify layout on all supported device sizes and orientations.
+- [x] Swiped images do not change size between cards
+  - [ ] Verify size stability across multiple swipes.
+- [x] Remove "Cats" title from the swipe screen
+  - [ ] Verify no title appears on the swipe screen.
+- [x] Haptics on swipe left (parity with swipe right)
+  - [ ] Verify swipe-left haptics on device.
+- [x] Background: random solid color per swipe
+  - [ ] Verify background changes per swipe and stays subtle.
+- [x] Favorites grid layout (thumbnails only; no filenames)
+  - [ ] Verify grid spacing and tap targets on small screens.
+- [x] Remove favorites (unfavorite) from the Favorites screen
+  - [ ] Verify remove works from grid and detail.
 
-##milestone 7 features
-[] share favorite cat images from favorites screen via apple share sheet
+## Milestone 7: Fun feedback
 
+- [x] Swipe right: happy cat emoji bubbles up from bottom
+  - [ ] Verify Like burst triggers on device.
+- [x] Swipe left: sad cat emoji bubbles down
+  - [ ] Verify Nope burst triggers on device.
 
+## Milestone 8: Sharing
 
-## Non-goals (for now)
-
-- Accounts/login
-- Server-side favorites sync
-- Non-Swift tooling or build systems
-
-# CatFinderSwipe Roadmap
-
-This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + URLSession + SwiftData + DocC + XCTest/Swift Testing).
-
-## MVP (Swipe cats)
-
-- [x] App boots into swipe UI (no template list UI)
-- [x] Fetch random cat metadata over the network
-- [x] Display cat photo in a swipeable card
-- [x] Swipe left = seen
-- [x] Swipe right = favorite + seen
-- [x] Favorites list screen
+- [x] Share a favorite cat image from Favorites via Apple share sheet
+  - [ ] Verify Share opens on device and includes image.
 
 
-## Milestone 2 (Robustness)
+## Milestone 9: Widgets & export
 
-- [x] Loading/empty/error UI states refined
-- [x] Avoid repeats more aggressively (persist seen IDs, limit retries)
-- [x] Add simple “Clear data” debug option
-- [x] Add reachability-friendly messaging (don’t hard-crash on offline)
-
-## Milestone 3 (Caching & performance)
-
-- [ ] Image caching (memory + disk) to reduce network + speed up Favorites
-- [ ] Prefetch next image
-- [ ] Tune `URLCache` sizes and request policies
-- [ ] Image is scaled appropriately for device screen size / resolution
-- [ ] Image centering + aspect ratio handling
-- [ ] Image in center in box that extends to edges (no weird corners on rounded cards)
-- [ ] Background to be a random soild colour on every swipe
-
-## Milestone 3.1
-- [ ] Favorites grid view layout only with no file names
-- [ ] if photo is liked then random cat emjoicons bubble up from bottom of screen
-
-## Milestone 4 (Testing)
-
-- [ ] Decode tests for API responses (fixture JSON)
-- [ ] Service tests with stubbed URLSession
-- [ ] SwiftData store tests using in-memory containers
-- [ ] UI test: swipe right adds a favorite
-
-> Note: tests are intended to be run on a connected physical iPhone/iPad using `bash scripts/test_on_device.sh`.
-
-## Milestone 5 (Polish)
-
-- [x] Haptics on commit
-- [x] Accessibility labels for swipe actions
-- [x] App icon + launch polish
-
-## Milestone 6 fixes
-
-- [ ] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) forground
-- [ ] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) background
-- [ ] swiped images do not change size
-- [ ] remove "cats" title from top of swipe screen
-- [ ] hapics on swipe left also
-- [ ] happy cat emoji bubbling up on swipe right
-- [ ] sad cat emoji bubbling down on swipe left
-
-
-## Milestone 7 features
-
-- [ ] share favorite cat images from favorites screen via apple share sheet
-
-
-## Milestone 8 (Privacy, safety, compliance)
-
-- [ ] Add a privacy summary section in Settings/About (what is stored locally, what is fetched remotely)
-- [ ] App Tracking Transparency: confirm none needed; document rationale
-- [ ] Basic content disclaimer + “Report issue” link (opens Mail or GitHub)
-
-
-## Milestone 9 (Share & widgets)
-
-- [ ] Home Screen widget: “Random favorite” / “Recent favorite”
-- [ ] Share as image with watermark toggle (in-app render)
-- [ ] Save to Photos (with permission handling)
-
-
-## Non-goals (for now)
-
-- Accounts/login
-- Server-side favorites sync
-- Non-Swift tooling or build systems
-
-# CatFinderSwipe Roadmap
-
-This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + URLSession + SwiftData + DocC + XCTest/Swift Testing).
-
-## MVP (Swipe cats)
-
-- [x] App boots into swipe UI (no template list UI)
-  - [ ] TODO: Verify fresh install launches directly into swipe UI on a physical device (not a simulator-only path).
-- [x] Fetch random cat metadata over the network
-  - [ ] TODO: Verify fetch works on slow networks and handles HTTP errors without crashing.
-- [x] Display cat photo in a swipeable card
-  - [ ] TODO: Verify image rendering on multiple device sizes (small + large iPhones) and in dark mode.
-- [x] Swipe left = seen
-  - [ ] TODO: Verify the “seen” state persists across relaunch (if persistence is intended for MVP).
-- [x] Swipe right = favorite + seen
-  - [ ] TODO: Verify favorite is persisted and also marked seen in the same transaction.
-- [x] Favorites list screen
-  - [ ] TODO: Verify favorites screen loads quickly with many items and handles missing images gracefully.
-
-## Milestone 2 (Robustness)
-
-- [x] Loading/empty/error UI states refined
-  - [ ] TODO: Verify all three states are reachable and correct (loading, empty, error) on device.
-- [x] Avoid repeats more aggressively (persist seen IDs, limit retries)
-  - [ ] TODO: Verify repeats are actually prevented after relaunch and retry limits don’t cause dead-ends.
-- [x] Add simple “Clear data” debug option
-  - [ ] TODO: Verify it clears SwiftData + caches (if applicable) and resets swipe/favorites state.
-- [x] Add reachability-friendly messaging (don’t hard-crash on offline)
-  - [ ] TODO: Verify airplane mode/offline shows messaging and allows recovery when network returns.
-
-## Milestone 3 (Caching & performance)
-
-- [ ] Image caching (memory + disk) to reduce network + speed up Favorites
-- [ ] Prefetch next image
-- [ ] Tune `URLCache` sizes and request policies
-- [ ] Image is scaled appropriately for device screen size / resolution
-- [ ] Image centering + aspect ratio handling
-- [ ] Image in center in box that extends to edges (no weird corners on rounded cards)
-- [ ] Background to be a random soild colour on every swipe
-
-## Milestone 3.1
-
-- [ ] Favorites grid view layout only with no file names
-- [ ] if photo is liked then random cat emjoicons bubble up from bottom of screen
-
-## Milestone 4 (Testing)
-
-- [ ] Decode tests for API responses (fixture JSON)
-- [ ] Service tests with stubbed URLSession
-- [ ] SwiftData store tests using in-memory containers
-- [ ] UI test: swipe right adds a favorite
-
-> Note: tests are intended to be run on a connected physical iPhone/iPad using `bash scripts/test_on_device.sh`.
-
-## Milestone 5 (Polish)
-
-- [x] Haptics on commit
-  - [ ] TODO: Verify haptics fire on real device (not just simulator) and respect system haptics settings.
-- [x] Accessibility labels for swipe actions
-  - [ ] TODO: Verify with VoiceOver that swipe-left/right actions are discoverable and announced correctly.
-- [x] App icon + launch polish
-  - [ ] TODO: Verify icons for all required sizes and launch appearance on device (light/dark) with no warnings in Xcode.
-
-## Milestone 6 fixes
-
-- [ ] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) forground
-- [ ] Card layout (95% wide, 75% tall, consistent rounded rectangle shape) background
-- [ ] swiped images do not change size
-- [ ] remove "cats" title from top of swipe screen
-- [ ] hapics on swipe left also
-- [ ] happy cat emoji bubbling up on swipe right
-- [ ] sad cat emoji bubbling down on swipe left
-
-## milestone 7 features
-
-- [ ] share favorite cat images from favorites screen via apple share sheet
+- [x] Home Screen widget: "Random Favorite" / "Recent Favorite"
+  - [ ] Create WidgetKit extension target in Xcode and enable App Group data sharing.
+  - [ ] Verify widget reads favorites.json and renders.
+- [x] Save to Photos (with permission handling and clear UX)
+  - [ ] Add `NSPhotoLibraryAddUsageDescription` to Info.plist and verify on device.
 
 ## Non-goals (for now)
 

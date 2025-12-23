@@ -6,19 +6,22 @@ import UIKit
 /// Note: NSCache is already thread-safe; this remains a `final class` so it can be used
 /// from the `ImagePipeline` actor without extra hops.
 final class MemoryImageCache {
-    private let cache = NSCache<NSURL, UIImage>()
+    private let cache = NSCache<NSString, UIImage>()
 
     init() {
         // Roughly cap memory cache. Cost is estimated from pixel count.
         cache.totalCostLimit = 64 * 1024 * 1024 // 64 MB
+
+        // Additional guardrail to prevent too many distinct images piling up.
+        cache.countLimit = 80
     }
 
-    func image(for url: URL) -> UIImage? {
-        cache.object(forKey: url as NSURL)
+    func image(forKey key: String) -> UIImage? {
+        cache.object(forKey: key as NSString)
     }
 
-    func insert(_ image: UIImage, for url: URL) {
-        cache.setObject(image, forKey: url as NSURL, cost: image.memoryCost)
+    func insert(_ image: UIImage, forKey key: String) {
+        cache.setObject(image, forKey: key as NSString, cost: image.memoryCost)
     }
 
     func removeAll() {

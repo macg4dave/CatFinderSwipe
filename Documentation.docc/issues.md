@@ -1,2 +1,0 @@
-- [ ] all images to be centered in a rounded rectangle card that extends 95% across the screen width and 75% down the screen height with the same shape for every image
-- [ ] Change favorite icon to a Happy cat face emoji

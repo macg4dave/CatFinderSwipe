@@ -42,12 +42,14 @@ final class CatDecisionStore {
     func addFavorite(_ card: CatCard) {
         guard !isFavorite(id: card.id) else { return }
         modelContext.insert(FavoriteCat(id: card.id, imageURL: card.imageURL))
+        WidgetFavoritesExport.exportFavorites(modelContext: modelContext)
     }
 
     func removeFavorite(id: String) {
         let descriptor = FetchDescriptor<FavoriteCat>(predicate: #Predicate { $0.id == id })
         if let existing = try? modelContext.fetch(descriptor).first {
             modelContext.delete(existing)
+            WidgetFavoritesExport.exportFavorites(modelContext: modelContext)
         }
     }
 
@@ -80,5 +82,7 @@ final class CatDecisionStore {
         // Keep caches consistent.
         seenIDCache.removeAll()
         didPreloadCaches = true
+
+        WidgetFavoritesExport.exportFavorites(modelContext: modelContext)
     }
 }

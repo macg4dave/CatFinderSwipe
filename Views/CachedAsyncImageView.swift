@@ -8,6 +8,7 @@ struct CachedAsyncImageView: View {
 
     @State private var uiImage: UIImage?
     @State private var errorMessage: String?
+    @State private var containerSize: CGSize = .zero
 
     var body: some View {
         ZStack {
@@ -28,19 +29,56 @@ struct CachedAsyncImageView: View {
                     .progressViewStyle(.circular)
             }
         }
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { containerSize = proxy.size }
+                    .onChange(of: proxy.size) { _, newValue in
+                        containerSize = newValue
+                    }
+            }
+        )
         .drawingGroup()
         .ifLet(cornerRadius) { view, radius in
             view.clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         }
-        .task(id: url) {
+        .task(id: taskIdentity) {
             errorMessage = nil
             do {
-                uiImage = try await ImagePipeline.shared.image(for: url)
+                if let maxPixel = requestedMaxPixelSize {
+                    uiImage = try await ImagePipeline.shared.image(for: url, maxPixelSize: maxPixel)
+                } else {
+                    uiImage = try await ImagePipeline.shared.image(for: url)
+                }
             } catch {
                 uiImage = nil
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }
+    }
+
+    private var requestedMaxPixelSize: Int? {
+        // Avoid requesting while layout is unresolved.
+        guard containerSize.width > 1, containerSize.height > 1 else { return nil }
+
+        // Convert points -> pixels.
+        let scale = UIScreen.main.scale
+        let maxPoints = max(containerSize.width, containerSize.height)
+        var pixels = Int(ceil(maxPoints * scale))
+
+        // Clamp and bucket to reduce the number of variants.
+        pixels = max(256, min(2048, pixels))
+        let bucket = 128
+        pixels = ((pixels + bucket - 1) / bucket) * bucket
+        return pixels
+    }
+
+    private var taskIdentity: String {
+        // Changing size bucket should reload with an appropriately scaled image.
+        if let maxPixel = requestedMaxPixelSize {
+            return url.absoluteString + "|mps=\(maxPixel)"
+        }
+        return url.absoluteString
     }
 }
 

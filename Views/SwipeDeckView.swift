@@ -8,6 +8,10 @@ struct SwipeDeckView: View {
 
     @State private var dragOffset: CGSize = .zero
 
+    // Milestone 7: fun feedback.
+    @State private var likeBurstTrigger: Int = 0
+    @State private var nopeBurstTrigger: Int = 0
+
     private enum Layout {
         static let cardWidthFraction: CGFloat = 0.95
         static let cardHeightFraction: CGFloat = 0.75
@@ -29,6 +33,41 @@ struct SwipeDeckView: View {
 
             content
                 .padding()
+
+            // Emoji bursts (non-interactive overlay).
+            EmojiBurstView(trigger: likeBurstTrigger, kind: .happy, direction: .up)
+                .zIndex(10)
+            EmojiBurstView(trigger: nopeBurstTrigger, kind: .sad, direction: .down)
+                .zIndex(10)
+
+            if viewModel.isOffline {
+                VStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wifi.slash")
+                        Text("Offline")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        Text("Connect and tap Retry")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(.thinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(.quaternary)
+                    )
+                    .padding(.top, 10)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(20)
+            }
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -38,6 +77,14 @@ struct SwipeDeckView: View {
             } label: {
                 Label("Favorites", systemImage: "heart.fill")
             }
+
+#if DEBUG
+            Button {
+                viewModel.clearDataAndReload()
+            } label: {
+                Label("Clear Data", systemImage: "trash")
+            }
+#endif
         }
         .onAppear {
             // Swap in the real store backed by the app’s ModelContext.
@@ -107,6 +154,7 @@ struct SwipeDeckView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
                 Haptics.swipeCommitLike()
+                likeBurstTrigger += 1
                 viewModel.swipeRight()
             }
         } else if translation.width < -threshold {
@@ -114,6 +162,7 @@ struct SwipeDeckView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
                 Haptics.swipeCommitNope()
+                nopeBurstTrigger += 1
                 viewModel.swipeLeft()
             }
         } else {

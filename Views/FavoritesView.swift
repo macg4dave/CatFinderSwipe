@@ -1,8 +1,17 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct FavoritesView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \FavoriteCat.createdAt, order: .reverse) private var favorites: [FavoriteCat]
+
+    @State private var isPreparingShare: Bool = false
+    @State private var shareURL: URL?
+    @State private var isShowingShareSheet: Bool = false
+    @State private var shareErrorMessage: String?
+
+    @State private var isSavingToPhotos: Bool = false
 
     private let spacing: CGFloat = 12
     private let horizontalPadding: CGFloat = 16
@@ -19,7 +28,7 @@ struct FavoritesView: View {
                     ForEach(favorites) { fav in
                         if let url = fav.imageURL {
                             NavigationLink {
-                                FavoriteDetailView(imageURL: url)
+                                FavoriteDetailView(favorite: fav)
                             } label: {
                                 CachedAsyncImageView(url: url, contentMode: .fill)
                                     .frame(width: tileSize, height: tileSize)
@@ -30,6 +39,30 @@ struct FavoritesView: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    Task {
+                                        await prepareShareFromGrid(url: url, id: fav.id)
+                                    }
+                                } label: {
+                                    Label("Share", systemImage: "square.and.arrow.up")
+                                }
+
+                                Button {
+                                    Task {
+                                        await saveToPhotosFromGrid(url: url)
+                                    }
+                                } label: {
+                                    Label("Save to Photos", systemImage: "square.and.arrow.down")
+                                }
+
+                                Button(role: .destructive) {
+                                    modelContext.delete(fav)
+                                    WidgetFavoritesExport.exportFavorites(modelContext: modelContext)
+                                } label: {
+                                    Label("Remove from Favorites", systemImage: "heart.slash")
+                                }
+                            }
                         }
                     }
                 }
@@ -37,18 +70,208 @@ struct FavoritesView: View {
                 .padding(.vertical, spacing)
             }
             .navigationTitle("Favorites")
+            .sheet(isPresented: $isShowingShareSheet, onDismiss: cleanupTempShareFile) {
+                if let shareURL {
+                    ShareSheet(activityItems: [shareURL])
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let shareErrorMessage {
+                    Text(shareErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(.thinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(.quaternary)
+                        )
+                        .padding(.bottom, 16)
+                        .transition(.opacity)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func prepareShareFromGrid(url: URL, id: String) async {
+        shareErrorMessage = nil
+        guard !isPreparingShare else { return }
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        do {
+            let image = try await ImagePipeline.shared.image(for: url, maxPixelSize: 2048)
+            guard let data = image.jpegData(compressionQuality: 0.92) ?? image.pngData() else {
+                shareErrorMessage = "Couldn’t prepare image data for sharing."
+                return
+            }
+
+            let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            let fileName = "CatFinderSwipe-\(id).jpg"
+            let fileURL = tempDir.appendingPathComponent(fileName)
+            try data.write(to: fileURL, options: [.atomic])
+
+            shareURL = fileURL
+            isShowingShareSheet = true
+        } catch {
+            shareErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func cleanupTempShareFile() {
+        guard let shareURL else { return }
+        try? FileManager.default.removeItem(at: shareURL)
+        self.shareURL = nil
+        // Auto-clear error after a bit? Keep it simple: clear immediately.
+        self.shareErrorMessage = nil
+    }
+
+    @MainActor
+    private func saveToPhotosFromGrid(url: URL) async {
+        shareErrorMessage = nil
+        guard !isSavingToPhotos else { return }
+        isSavingToPhotos = true
+        defer { isSavingToPhotos = false }
+
+        do {
+            let image = try await ImagePipeline.shared.image(for: url, maxPixelSize: 2048)
+            try await PhotoLibrarySaver.shared.saveImage(image)
+            shareErrorMessage = "Saved to Photos."
+        } catch {
+            shareErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 }
 
 struct FavoriteDetailView: View {
-    let imageURL: URL
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    let favorite: FavoriteCat
+
+    @State private var isPreparingShare: Bool = false
+    @State private var shareURL: URL?
+    @State private var isShowingShareSheet: Bool = false
+    @State private var shareErrorMessage: String?
+
+    @State private var isSavingToPhotos: Bool = false
 
     var body: some View {
         VStack {
-            CachedAsyncImageView(url: imageURL, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            if let imageURL = favorite.imageURL {
+                CachedAsyncImageView(url: imageURL, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                ContentUnavailableView("Missing image", systemImage: "photo", description: Text("This favorite doesn't have a valid image URL."))
+            }
+
+            if let shareErrorMessage {
+                Text(shareErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
+            }
         }
         .padding()
+        .navigationTitle("Favorite")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isSavingToPhotos {
+                ProgressView()
+            } else {
+                Button {
+                    Task { await saveToPhotos() }
+                } label: {
+                    Label("Save", systemImage: "square.and.arrow.down")
+                }
+                .disabled(favorite.imageURL == nil)
+            }
+
+            if isPreparingShare {
+                ProgressView()
+            } else {
+                Button {
+                    Task { await prepareShare() }
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .disabled(favorite.imageURL == nil)
+            }
+
+            Button(role: .destructive) {
+                modelContext.delete(favorite)
+                WidgetFavoritesExport.exportFavorites(modelContext: modelContext)
+                dismiss()
+            } label: {
+                Label("Unfavorite", systemImage: "heart.slash")
+            }
+        }
+        .sheet(isPresented: $isShowingShareSheet, onDismiss: cleanupTempShareFile) {
+            if let shareURL {
+                ShareSheet(activityItems: [shareURL])
+            }
+        }
+    }
+
+    @MainActor
+    private func saveToPhotos() async {
+        shareErrorMessage = nil
+        guard let imageURL = favorite.imageURL else {
+            shareErrorMessage = "No image URL available to save."
+            return
+        }
+
+        isSavingToPhotos = true
+        defer { isSavingToPhotos = false }
+
+        do {
+            let image = try await ImagePipeline.shared.image(for: imageURL, maxPixelSize: 2048)
+            try await PhotoLibrarySaver.shared.saveImage(image)
+            shareErrorMessage = "Saved to Photos."
+        } catch {
+            shareErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func prepareShare() async {
+        shareErrorMessage = nil
+        guard let imageURL = favorite.imageURL else {
+            shareErrorMessage = "No image URL available to share."
+            return
+        }
+
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        do {
+            // Fetch a reasonably high-quality image for sharing.
+            // (We still downsample in the pipeline to avoid huge textures.)
+            let image = try await ImagePipeline.shared.image(for: imageURL, maxPixelSize: 2048)
+
+            guard let data = image.jpegData(compressionQuality: 0.92) ?? image.pngData() else {
+                shareErrorMessage = "Couldn’t prepare image data for sharing."
+                return
+            }
+
+            let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            let fileName = "CatFinderSwipe-\(favorite.id).jpg"
+            let fileURL = tempDir.appendingPathComponent(fileName)
+            try data.write(to: fileURL, options: [.atomic])
+
+            shareURL = fileURL
+            isShowingShareSheet = true
+        } catch {
+            shareErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func cleanupTempShareFile() {
+        guard let shareURL else { return }
+        try? FileManager.default.removeItem(at: shareURL)
+        self.shareURL = nil
     }
 }

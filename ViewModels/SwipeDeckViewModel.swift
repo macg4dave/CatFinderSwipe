@@ -12,15 +12,28 @@ final class SwipeDeckViewModel: ObservableObject {
 
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published private(set) var isOffline: Bool = false
 
     private let api: CatAPIClientProtocol
     private var store: CatDecisionStore
 
+    private let networkMonitor: NetworkMonitor
+    private var cancellables: Set<AnyCancellable> = []
+
     private var prefetchTask: Task<Void, Never>?
 
-    init(api: CatAPIClientProtocol, store: CatDecisionStore) {
+    init(api: CatAPIClientProtocol, store: CatDecisionStore, networkMonitor: NetworkMonitor = NetworkMonitor()) {
         self.api = api
         self.store = store
+        self.networkMonitor = networkMonitor
+
+        // Keep a simple offline flag for UI messaging.
+        networkMonitor.$isConnected
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] connected in
+                self?.isOffline = !connected
+            }
+            .store(in: &cancellables)
     }
 
     func replaceStore(_ store: CatDecisionStore) {
@@ -36,12 +49,36 @@ final class SwipeDeckViewModel: ObservableObject {
         Task { await ensureLoaded(force: true) }
     }
 
+    func clearDataAndReload() {
+        Task {
+            // Clear persistence.
+            store.clearAll()
+
+            // Clear caches.
+            prefetchTask?.cancel()
+            prefetchTask = nil
+            ImagePipeline.shared.clearMemory()
+            await ImagePipeline.shared.clearDisk()
+
+            // Reset UI state and reload.
+            current = nil
+            next = nil
+            errorMessage = nil
+            isLoading = false
+            backgroundColor = StableColor.color(for: UUID().uuidString)
+            await ensureLoaded(force: true)
+        }
+    }
+
     private func ensureLoaded(force: Bool = false) async {
         guard force || current == nil else { return }
         isLoading = true
         defer { isLoading = false }
 
         do {
+            if isOffline {
+                throw OfflineError()
+            }
             let first = try await fetchNonSeenCard()
             let second = try await fetchNonSeenCard(excluding: first.id)
             current = first
@@ -58,6 +95,9 @@ final class SwipeDeckViewModel: ObservableObject {
     }
 
     private func fetchNonSeenCard(excluding excludedId: String? = nil) async throws -> CatCard {
+        if isOffline {
+            throw OfflineError()
+        }
         var attempts = 0
         while attempts < 20 {
             attempts += 1
@@ -117,5 +157,11 @@ final class SwipeDeckViewModel: ObservableObject {
                 await ImagePipeline.shared.prefetch(next.imageURL)
             }
         }
+    }
+}
+
+private struct OfflineError: LocalizedError {
+    var errorDescription: String? {
+        "You appear to be offline. Connect to the internet and tap Retry."
     }
 }

@@ -7,6 +7,11 @@ struct EmojiBurstView: View {
         case sad
     }
 
+    enum Direction {
+        case up
+        case down
+    }
+
     struct Particle: Identifiable {
         let id = UUID()
         let emoji: String
@@ -21,9 +26,14 @@ struct EmojiBurstView: View {
     /// Which type of emojis to emit for the burst.
     let kind: Kind
 
-    init(trigger: Int, kind: Kind = .happy) {
+    /// Which direction the emojis should travel.
+    /// Defaults to `.up` for happy and `.down` for sad.
+    let direction: Direction
+
+    init(trigger: Int, kind: Kind = .happy, direction: Direction? = nil) {
         self.trigger = trigger
         self.kind = kind
+        self.direction = direction ?? (kind == .sad ? .down : .up)
     }
 
     private var emojis: [String] {
@@ -44,6 +54,7 @@ struct EmojiBurstView: View {
                     EmojiParticleView(
                         particle: particle,
                         containerSize: geo.size,
+                        direction: direction,
                         onComplete: { id in
                             particles.removeAll { $0.id == id }
                         }
@@ -78,6 +89,7 @@ struct EmojiBurstView: View {
 private struct EmojiParticleView: View {
     let particle: EmojiBurstView.Particle
     let containerSize: CGSize
+    let direction: EmojiBurstView.Direction
     let onComplete: (UUID) -> Void
 
     @State private var y: CGFloat = 0
@@ -89,12 +101,22 @@ private struct EmojiParticleView: View {
             .position(x: particle.x, y: y)
             .opacity(opacity)
             .onAppear {
-                y = containerSize.height + 20
+                // Start off-screen and animate through the view.
+                switch direction {
+                case .up:
+                    y = containerSize.height + 20
+                case .down:
+                    y = -40
+                }
                 opacity = 1
 
-                // Animate upward.
                 withAnimation(.easeOut(duration: particle.duration)) {
-                    y = -40
+                    switch direction {
+                    case .up:
+                        y = -40
+                    case .down:
+                        y = containerSize.height + 20
+                    }
                 }
                 // Fade near the end.
                 withAnimation(.easeIn(duration: particle.duration * 0.45).delay(particle.duration * 0.55)) {
