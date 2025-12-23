@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import Combine
 
 /// Lightweight reachability monitor for friendly offline messaging.
 ///

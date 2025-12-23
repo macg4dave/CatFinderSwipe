@@ -102,13 +102,7 @@ This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + Sw
   - [ ] Verify Share opens on device and includes image.
 
 
-## Milestone 9: Widgets & export
 
-- [x] Home Screen widget: "Random Favorite" / "Recent Favorite"
-  - [ ] Create WidgetKit extension target in Xcode and enable App Group data sharing.
-  - [ ] Verify widget reads favorites.json and renders.
-- [x] Save to Photos (with permission handling and clear UX)
-  - [ ] Add `NSPhotoLibraryAddUsageDescription` to Info.plist and verify on device.
 
 ## Non-goals (for now)
 

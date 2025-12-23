@@ -14,7 +14,8 @@ import SwiftUI
 /// The widget reads a JSON export produced by the app (see `Utilities/WidgetFavoritesExport.swift`).
 
 private enum AppGroup {
-    // TODO: set to your real App Group (e.g. "group.com.macg4dave.CatFinderSwipe").
+    // Keep this in sync with `WidgetFavoritesExport.appGroupId`.
+    // If you compile `WidgetFavoritesExport.swift` into the widget target, prefer referencing it directly.
     static let id = "group.com.example.CatFinderSwipe"
 }
 
@@ -58,7 +59,10 @@ struct FavoritesProvider: TimelineProvider {
         }
         let fileURL = containerURL.appendingPathComponent("favorites.json")
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder().decode([WidgetFavorite].self, from: data)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode([WidgetFavorite].self, from: data)
     }
 }
 

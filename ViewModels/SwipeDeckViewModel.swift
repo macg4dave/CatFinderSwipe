@@ -22,13 +22,13 @@ final class SwipeDeckViewModel: ObservableObject {
 
     private var prefetchTask: Task<Void, Never>?
 
-    init(api: CatAPIClientProtocol, store: CatDecisionStore, networkMonitor: NetworkMonitor = NetworkMonitor()) {
+    init(api: CatAPIClientProtocol, store: CatDecisionStore, networkMonitor: NetworkMonitor? = nil) {
         self.api = api
         self.store = store
-        self.networkMonitor = networkMonitor
+        self.networkMonitor = networkMonitor ?? NetworkMonitor()
 
         // Keep a simple offline flag for UI messaging.
-        networkMonitor.$isConnected
+        self.networkMonitor.$isConnected
             .receive(on: DispatchQueue.main)
             .sink { [weak self] connected in
                 self?.isOffline = !connected
@@ -57,7 +57,7 @@ final class SwipeDeckViewModel: ObservableObject {
             // Clear caches.
             prefetchTask?.cancel()
             prefetchTask = nil
-            ImagePipeline.shared.clearMemory()
+            await ImagePipeline.shared.clearMemory()
             await ImagePipeline.shared.clearDisk()
 
             // Reset UI state and reload.
