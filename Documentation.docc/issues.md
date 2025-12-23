@@ -1,4 +1,5 @@
-images in backgrond need to be resized and same shape as the foreground images
-random cat emojis bubble up when liked not showing
-random sad cat emojis when disliked not showing
-
+- [x] all images to be centered in a rounded rectangle card that extends 95% across the screen width and 75% down the screen height with the same shape for every image
+- [x] background to be a random solid colour on every swipe
+- [x] image caching (memory + disk) to reduce network
+- [x] prefetch next image
+- [x] Change favorite icon to a Happy cat face emoji

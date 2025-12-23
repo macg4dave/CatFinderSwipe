@@ -18,9 +18,6 @@ final class SwipeDeckViewModel: ObservableObject {
 
     private var prefetchTask: Task<Void, Never>?
 
-    // Extra in-memory guard against re-queueing items while async fetches are in flight.
-    private var pendingOrInDeckIDs: Set<String> = []
-
     init(api: CatAPIClientProtocol, store: CatDecisionStore) {
         self.api = api
         self.store = store
@@ -45,18 +42,16 @@ final class SwipeDeckViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            pendingOrInDeckIDs.removeAll()
-
             let first = try await fetchNonSeenCard()
-            pendingOrInDeckIDs.insert(first.id)
-
             let second = try await fetchNonSeenCard(excluding: first.id)
-            pendingOrInDeckIDs.insert(second.id)
-
             current = first
             next = second
+
+            // Background to be a random solid colour on every swipe / initial load.
             backgroundColor = StableColor.color(for: UUID().uuidString)
-            prefetchNextImage()
+
+            // Prefetch next image to keep swiping snappy.
+            prefetchImagesForDeck()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -68,7 +63,6 @@ final class SwipeDeckViewModel: ObservableObject {
             attempts += 1
             let card = try await api.fetchNextCat()
             if let excludedId, card.id == excludedId { continue }
-            if pendingOrInDeckIDs.contains(card.id) { continue }
             if store.isSeen(id: card.id) { continue }
             return card
         }
@@ -78,7 +72,6 @@ final class SwipeDeckViewModel: ObservableObject {
     func swipeLeft() {
         guard let current else { return }
         store.markSeen(current)
-        pendingOrInDeckIDs.remove(current.id)
         advanceDeck()
     }
 
@@ -86,46 +79,43 @@ final class SwipeDeckViewModel: ObservableObject {
         guard let current else { return }
         store.addFavorite(current)
         store.markSeen(current)
-        pendingOrInDeckIDs.remove(current.id)
         advanceDeck()
     }
 
     private func advanceDeck() {
-        // Drop the visible next immediately so we don't render it underneath during transitions.
-        let oldNext = next
+        current = next
         next = nil
 
-        if let oldNext {
-            current = oldNext
-            backgroundColor = StableColor.color(for: UUID().uuidString)
-        } else {
-            current = nil
-        }
+        // Background to be a random solid colour on every swipe.
+        backgroundColor = StableColor.color(for: UUID().uuidString)
 
         prefetchTask?.cancel()
         prefetchTask = nil
 
         Task {
             do {
-                guard let current else { return }
-                // Ensure the new current is tracked as "in deck".
-                pendingOrInDeckIDs.insert(current.id)
-
-                let newNext = try await fetchNonSeenCard(excluding: current.id)
-                pendingOrInDeckIDs.insert(newNext.id)
+                let newNext = try await fetchNonSeenCard(excluding: current?.id)
                 next = newNext
-                prefetchNextImage()
+
+                // Prefetch next image after the deck advances.
+                prefetchImagesForDeck()
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }
     }
 
-    private func prefetchNextImage() {
-        guard let next else { return }
+    private func prefetchImagesForDeck() {
+        // Cancel any in-flight prefetch to prioritize the newest "next".
         prefetchTask?.cancel()
         prefetchTask = Task {
-            await ImagePipeline.shared.prefetch(next.imageURL)
+            if let current {
+                // Warm the cache for the current card as well.
+                await ImagePipeline.shared.prefetch(current.imageURL)
+            }
+            if let next {
+                await ImagePipeline.shared.prefetch(next.imageURL)
+            }
         }
     }
 }

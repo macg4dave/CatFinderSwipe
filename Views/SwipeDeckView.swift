@@ -7,7 +7,6 @@ struct SwipeDeckView: View {
     @StateObject private var viewModel: SwipeDeckViewModel
 
     @State private var dragOffset: CGSize = .zero
-    @State private var isCommittingSwipe: Bool = false
 
     init(api: CatAPIClientProtocol = CataasAPIClient()) {
         // ModelContext is only available at runtime, so we build the store in init using the environment later.
@@ -19,22 +18,30 @@ struct SwipeDeckView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground)
+            // Background to be a random solid colour on every swipe.
+            viewModel.backgroundColor
                 .ignoresSafeArea()
 
             content
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 12)
         }
-        .navigationTitle("Cats")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             NavigationLink {
                 FavoritesView()
             } label: {
-                Label("Favorites", systemImage: "heart.fill")
+                Label {
+                    Text("Favorites")
+                } icon: {
+                    Text("😺")
+                        .font(.system(size: 20))
+                        .accessibilityHidden(true)
+                }
             }
+            .accessibilityLabel("Favorites")
         }
         .onAppear {
-            // Swap in the real store backed by the app’s ModelContext.
             viewModel.replaceStore(CatDecisionStore(modelContext: modelContext))
             viewModel.start()
         }
@@ -52,39 +59,32 @@ struct SwipeDeckView: View {
             ProgressView("Loading cats…")
         } else if let current = viewModel.current {
             GeometryReader { geo in
-                let cardSize = CGSize(
-                    width: min(geo.size.width, 520),
-                    height: min(geo.size.height, 720)
-                )
+                let cardWidth = geo.size.width * 0.95
+                let cardHeight = geo.size.height * 0.75
 
                 ZStack {
-                    // Only show the next card once the swipe commit is done.
-                    if !isCommittingSwipe, let next = viewModel.next {
+                    if let next = viewModel.next {
                         CatCardView(card: next, backgroundColor: viewModel.backgroundColor)
-                            .frame(width: cardSize.width, height: cardSize.height)
+                            .frame(width: cardWidth, height: cardHeight)
                             .scaleEffect(0.98)
                             .opacity(0.6)
-                            .zIndex(0)
                     }
 
                     CatCardView(card: current, backgroundColor: viewModel.backgroundColor)
-                        .frame(width: cardSize.width, height: cardSize.height)
+                        .frame(width: cardWidth, height: cardHeight)
                         .offset(dragOffset)
                         .rotationEffect(.degrees(Double(dragOffset.width / 20)))
-                        .zIndex(1)
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
-                                    guard !isCommittingSwipe else { return }
                                     dragOffset = value.translation
                                 }
                                 .onEnded { value in
-                                    guard !isCommittingSwipe else { return }
                                     handleDragEnded(value)
                                 }
                         )
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.85), value: dragOffset)
         } else {
@@ -97,20 +97,16 @@ struct SwipeDeckView: View {
         let translation = value.translation
 
         if translation.width > threshold {
-            isCommittingSwipe = true
             withAnimation { dragOffset = CGSize(width: 800, height: translation.height) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
                 viewModel.swipeRight()
-                isCommittingSwipe = false
             }
         } else if translation.width < -threshold {
-            isCommittingSwipe = true
             withAnimation { dragOffset = CGSize(width: -800, height: translation.height) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
                 viewModel.swipeLeft()
-                isCommittingSwipe = false
             }
         } else {
             withAnimation { dragOffset = .zero }
