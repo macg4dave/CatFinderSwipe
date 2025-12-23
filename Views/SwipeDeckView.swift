@@ -8,8 +8,11 @@ struct SwipeDeckView: View {
 
     @State private var dragOffset: CGSize = .zero
 
-    @State private var happyBurstTrigger: Int = 0
-    @State private var sadBurstTrigger: Int = 0
+    private enum Layout {
+        static let cardWidthFraction: CGFloat = 0.95
+        static let cardHeightFraction: CGFloat = 0.75
+        static let cardCornerRadius: CGFloat = 20
+    }
 
     init(api: CatAPIClientProtocol = CataasAPIClient()) {
         // ModelContext is only available at runtime, so we build the store in init using the environment later.
@@ -26,18 +29,14 @@ struct SwipeDeckView: View {
 
             content
                 .padding()
-
-            // Emoji feedback overlays (no hit testing).
-            EmojiBurstView(trigger: happyBurstTrigger, kind: .happy)
-            EmojiBurstView(trigger: sadBurstTrigger, kind: .sad)
         }
-        .navigationTitle("Cats")
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             NavigationLink {
                 FavoritesView()
             } label: {
-                Text("😺")
-                    .accessibilityLabel("Favorites")
+                Label("Favorites", systemImage: "heart.fill")
             }
         }
         .onAppear {
@@ -58,20 +57,27 @@ struct SwipeDeckView: View {
         } else if viewModel.isLoading && viewModel.current == nil {
             ProgressView("Loading cats…")
         } else if let current = viewModel.current {
-            GeometryReader { geo in
-                let cardWidth = geo.size.width * 0.95
-                let cardHeight = geo.size.height * 0.75
+            GeometryReader { proxy in
+                let cardWidth = proxy.size.width * Layout.cardWidthFraction
+                let cardHeight = proxy.size.height * Layout.cardHeightFraction
+                let shape = RoundedRectangle(cornerRadius: Layout.cardCornerRadius, style: .continuous)
 
                 ZStack {
                     if let next = viewModel.next {
                         CatCardView(card: next, backgroundColor: viewModel.backgroundColor)
                             .frame(width: cardWidth, height: cardHeight)
+                            .clipShape(shape)
+                            .contentShape(shape)
+                            .overlay(shape.strokeBorder(.quaternary))
                             .scaleEffect(0.98)
                             .opacity(0.6)
                     }
 
                     CatCardView(card: current, backgroundColor: viewModel.backgroundColor)
                         .frame(width: cardWidth, height: cardHeight)
+                        .clipShape(shape)
+                        .contentShape(shape)
+                        .overlay(shape.strokeBorder(.quaternary))
                         .offset(dragOffset)
                         .rotationEffect(.degrees(Double(dragOffset.width / 20)))
                         .gesture(
@@ -84,9 +90,9 @@ struct SwipeDeckView: View {
                                 }
                         )
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: dragOffset)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
+            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: dragOffset)
         } else {
             ContentUnavailableView("No cats", systemImage: "cat")
         }
@@ -100,15 +106,15 @@ struct SwipeDeckView: View {
             withAnimation { dragOffset = CGSize(width: 800, height: translation.height) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
+                Haptics.swipeCommitLike()
                 viewModel.swipeRight()
-                happyBurstTrigger += 1
             }
         } else if translation.width < -threshold {
             withAnimation { dragOffset = CGSize(width: -800, height: translation.height) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
+                Haptics.swipeCommitNope()
                 viewModel.swipeLeft()
-                sadBurstTrigger += 1
             }
         } else {
             withAnimation { dragOffset = .zero }
