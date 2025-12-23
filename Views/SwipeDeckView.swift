@@ -8,6 +8,9 @@ struct SwipeDeckView: View {
 
     @State private var dragOffset: CGSize = .zero
 
+    @State private var happyBurstTrigger: Int = 0
+    @State private var sadBurstTrigger: Int = 0
+
     init(api: CatAPIClientProtocol = CataasAPIClient()) {
         // ModelContext is only available at runtime, so we build the store in init using the environment later.
         // We initialize with a lightweight placeholder store; it’ll be replaced on appear.
@@ -18,30 +21,27 @@ struct SwipeDeckView: View {
 
     var body: some View {
         ZStack {
-            // Background to be a random solid colour on every swipe.
-            viewModel.backgroundColor
+            Color(.systemBackground)
                 .ignoresSafeArea()
 
             content
-                .padding(.horizontal)
-                .padding(.vertical, 12)
+                .padding()
+
+            // Emoji feedback overlays (no hit testing).
+            EmojiBurstView(trigger: happyBurstTrigger, kind: .happy)
+            EmojiBurstView(trigger: sadBurstTrigger, kind: .sad)
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Cats")
         .toolbar {
             NavigationLink {
                 FavoritesView()
             } label: {
-                Label {
-                    Text("Favorites")
-                } icon: {
-                    Text("😺")
-                        .font(.system(size: 20))
-                        .accessibilityHidden(true)
-                }
+                Text("😺")
+                    .accessibilityLabel("Favorites")
             }
-            .accessibilityLabel("Favorites")
         }
         .onAppear {
+            // Swap in the real store backed by the app’s ModelContext.
             viewModel.replaceStore(CatDecisionStore(modelContext: modelContext))
             viewModel.start()
         }
@@ -84,9 +84,9 @@ struct SwipeDeckView: View {
                                 }
                         )
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: dragOffset)
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: dragOffset)
         } else {
             ContentUnavailableView("No cats", systemImage: "cat")
         }
@@ -101,12 +101,14 @@ struct SwipeDeckView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
                 viewModel.swipeRight()
+                happyBurstTrigger += 1
             }
         } else if translation.width < -threshold {
             withAnimation { dragOffset = CGSize(width: -800, height: translation.height) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 dragOffset = .zero
                 viewModel.swipeLeft()
+                sadBurstTrigger += 1
             }
         } else {
             withAnimation { dragOffset = .zero }

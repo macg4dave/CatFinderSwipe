@@ -54,6 +54,14 @@ This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + UR
 - [x] Undo last swipe
 - [x] App icon + launch polish
 
+## Milestone 6 fixes
+Card layout (95% wide, 75% tall, consistent rounded rectangle shape) forground
+Card layout (95% wide, 75% tall, consistent rounded rectangle shape) background
+changed Favorite icon  to happy cat face emoji
+have happy cat face emoji bubble up from bottom of screen when photo is liked
+have sad cat face emoji bubble up from bottom of screen when photo is disliked
+
+
 ## Non-goals (for now)
 
 - Accounts/login

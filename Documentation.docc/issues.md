@@ -1,5 +1,2 @@
-- [x] all images to be centered in a rounded rectangle card that extends 95% across the screen width and 75% down the screen height with the same shape for every image
-- [x] background to be a random solid colour on every swipe
-- [x] image caching (memory + disk) to reduce network
-- [x] prefetch next image
-- [x] Change favorite icon to a Happy cat face emoji
+- [ ] all images to be centered in a rounded rectangle card that extends 95% across the screen width and 75% down the screen height with the same shape for every image
+- [ ] Change favorite icon to a Happy cat face emoji

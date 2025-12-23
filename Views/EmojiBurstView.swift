@@ -1,7 +1,12 @@
 import SwiftUI
 
-/// A lightweight overlay that emits floating emoji particles when triggered.
+/// A lightweight overlay that emits floating cat emojis when triggered.
 struct EmojiBurstView: View {
+    enum Kind {
+        case happy
+        case sad
+    }
+
     struct Particle: Identifiable {
         let id = UUID()
         let emoji: String
@@ -13,12 +18,21 @@ struct EmojiBurstView: View {
     /// Increment this value to trigger a new burst.
     let trigger: Int
 
-    /// Emoji choices to emit.
-    let emojis: [String]
+    /// Which type of emojis to emit for the burst.
+    let kind: Kind
 
-    init(trigger: Int, emojis: [String] = ["😺", "😸", "😻", "🐱", "🐈", "🐾"]) {
+    init(trigger: Int, kind: Kind = .happy) {
         self.trigger = trigger
-        self.emojis = emojis
+        self.kind = kind
+    }
+
+    private var emojis: [String] {
+        switch kind {
+        case .happy:
+            return ["😺", "😸", "😻", "🐱", "🐈", "🐾"]
+        case .sad:
+            return ["😿", "🙀", "😾", "💔"]
+        }
     }
 
     @State private var particles: [Particle] = []
