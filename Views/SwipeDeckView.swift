@@ -52,12 +52,12 @@ struct SwipeDeckView: View {
         } else if let current = viewModel.current {
             ZStack {
                 if let next = viewModel.next {
-                    CatCardView(card: next, backgroundColor: viewModel.backgroundColor(for: next))
+                    CatCardView(card: next, backgroundColor: viewModel.backgroundColor)
                         .scaleEffect(0.98)
                         .opacity(0.6)
                 }
 
-                CatCardView(card: current, backgroundColor: viewModel.backgroundColor(for: current))
+                CatCardView(card: current, backgroundColor: viewModel.backgroundColor)
                     .offset(dragOffset)
                     .rotationEffect(.degrees(Double(dragOffset.width / 20)))
                     .gesture(

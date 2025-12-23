@@ -1,12 +1,14 @@
-import Combine
 import Foundation
 import SwiftData
 import SwiftUI
+import Combine
 
 @MainActor
 final class SwipeDeckViewModel: ObservableObject {
     @Published private(set) var current: CatCard?
     @Published private(set) var next: CatCard?
+
+    @Published private(set) var backgroundColor: Color = StableColor.color(for: "initial")
 
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
@@ -34,10 +36,6 @@ final class SwipeDeckViewModel: ObservableObject {
         Task { await ensureLoaded(force: true) }
     }
 
-    func backgroundColor(for card: CatCard) -> Color {
-        StableColor.color(for: card.id)
-    }
-
     private func ensureLoaded(force: Bool = false) async {
         guard force || current == nil else { return }
         isLoading = true
@@ -48,7 +46,7 @@ final class SwipeDeckViewModel: ObservableObject {
             let second = try await fetchNonSeenCard(excluding: first.id)
             current = first
             next = second
-
+            backgroundColor = StableColor.color(for: UUID().uuidString)
             prefetchNextImage()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -83,8 +81,10 @@ final class SwipeDeckViewModel: ObservableObject {
     private func advanceDeck() {
         current = next
         next = nil
+        backgroundColor = StableColor.color(for: UUID().uuidString)
 
-        prefetchNextImage()
+        prefetchTask?.cancel()
+        prefetchTask = nil
 
         Task {
             do {
@@ -98,11 +98,10 @@ final class SwipeDeckViewModel: ObservableObject {
     }
 
     private func prefetchNextImage() {
+        guard let next else { return }
         prefetchTask?.cancel()
-        guard let url = next?.imageURL else { return }
-
         prefetchTask = Task {
-            await ImagePipeline.shared.prefetch(url)
+            await ImagePipeline.shared.prefetch(next.imageURL)
         }
     }
 }

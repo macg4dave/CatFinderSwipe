@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// A basic file-based image cache stored in the app's Caches directory.
 actor DiskImageCache {
@@ -12,7 +13,7 @@ actor DiskImageCache {
         try? fileManager.createDirectory(at: baseURL, withIntermediateDirectories: true)
     }
 
-    func loadImage(for url: URL) -> UIImage? {
+    func loadImage(for url: URL) async -> UIImage? {
         let fileURL = path(for: url)
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
         return UIImage(data: data)
@@ -54,5 +55,3 @@ actor DiskImageCache {
         return String(value, radix: 16)
     }
 }
-
-import UIKit

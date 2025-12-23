@@ -4,6 +4,11 @@ struct CatCardView: View {
     let card: CatCard
     let backgroundColor: Color
 
+    init(card: CatCard, backgroundColor: Color = StableColor.color(for: UUID().uuidString)) {
+        self.card = card
+        self.backgroundColor = backgroundColor
+    }
+
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
 
@@ -13,6 +18,7 @@ struct CatCardView: View {
             CachedAsyncImageView(url: card.imageURL, contentMode: .fill)
         }
         .clipShape(shape)
+        .contentShape(shape)
         .overlay(shape.strokeBorder(.quaternary))
         .accessibilityLabel("Cat photo")
     }

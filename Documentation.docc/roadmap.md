@@ -36,7 +36,7 @@ This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + UR
 
 ## Milestone 3.1
 - [ ] Favorites grid view layout only with no file names
-- [ ] if photo is liked then emocons
+- [ ] if photo is liked then random cat emjoicons bubble up from bottom of screen
 
 ## Milestone 4 (Testing)
 

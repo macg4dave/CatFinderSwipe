@@ -4,26 +4,31 @@ import SwiftData
 struct FavoritesView: View {
     @Query(sort: \FavoriteCat.createdAt, order: .reverse) private var favorites: [FavoriteCat]
 
-    var body: some View {
-        List {
-            ForEach(favorites) { fav in
-                if let url = fav.imageURL {
-                    NavigationLink {
-                        FavoriteDetailView(imageURL: url)
-                    } label: {
-                        HStack {
-                            CachedAsyncImageView(url: url, contentMode: .fill)
-                                .frame(width: 56, height: 56)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    private let columns: [GridItem] = [
+        GridItem(.adaptive(minimum: 110), spacing: 12, alignment: .top)
+    ]
 
-                            Text(fav.id)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(favorites) { fav in
+                    if let url = fav.imageURL {
+                        NavigationLink {
+                            FavoriteDetailView(imageURL: url)
+                        } label: {
+                            CachedAsyncImageView(url: url, contentMode: .fill)
+                                .frame(height: 110)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(.quaternary)
+                                )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
+            .padding()
         }
         .navigationTitle("Favorites")
     }
@@ -35,6 +40,7 @@ struct FavoriteDetailView: View {
     var body: some View {
         VStack {
             CachedAsyncImageView(url: imageURL, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .padding()
     }
