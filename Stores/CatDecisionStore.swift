@@ -51,6 +51,24 @@ final class CatDecisionStore {
         }
     }
 
+    /// Undo support: remove a SeenCat record for this ID.
+    func unmarkSeen(id: String) {
+        preloadCaches()
+
+        let descriptor = FetchDescriptor<SeenCat>(predicate: #Predicate { $0.id == id })
+        if let existing = try? modelContext.fetch(descriptor).first {
+            modelContext.delete(existing)
+        }
+
+        // Keep cache consistent even if the record wasn't found.
+        seenIDCache.remove(id)
+    }
+
+    /// Undo support: best-effort removal if it exists.
+    func removeFavoriteIfPresent(id: String) {
+        removeFavorite(id: id)
+    }
+
     func clearAll() {
         if let favorites = try? modelContext.fetch(FetchDescriptor<FavoriteCat>()) {
             favorites.forEach { modelContext.delete($0) }

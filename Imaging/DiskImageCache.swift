@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import CryptoKit
 
 /// A basic file-based image cache stored in the app's Caches directory.
 actor DiskImageCache {
@@ -40,18 +41,9 @@ actor DiskImageCache {
 
     private func cacheKey(for url: URL) -> String {
         // Stable filename derived from the full URL string.
-        let input = Data(url.absoluteString.utf8)
-        let digest = sha256(input)
-        return digest + ".img"
-    }
-
-    private func sha256(_ data: Data) -> String {
-        // Avoid CryptoKit dependency by using a simple built-in hash.
-        // This isn't cryptographically strong, but it's stable enough for filenames.
-        var hasher = Hasher()
-        hasher.combine(data.count)
-        data.forEach { hasher.combine($0) }
-        let value = hasher.finalize()
-        return String(value, radix: 16)
+        // Use a stable, cross-launch digest (Hasher is intentionally randomized per-process).
+        let digest = SHA256.hash(data: Data(url.absoluteString.utf8))
+        let hex = digest.compactMap { String(format: "%02x", $0) }.joined()
+        return hex + ".img"
     }
 }

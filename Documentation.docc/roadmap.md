@@ -49,10 +49,10 @@ This roadmap is written to keep the project **100% Swift + Xcode** (SwiftUI + UR
 
 ## Milestone 5 (Polish)
 
-- [ ] Haptics on commit
-- [ ] Accessibility labels for swipe actions
-- [ ] Undo last swipe
-- [ ] App icon + launch polish
+- [x] Haptics on commit
+- [x] Accessibility labels for swipe actions
+- [x] Undo last swipe
+- [x] App icon + launch polish
 
 ## Non-goals (for now)
 

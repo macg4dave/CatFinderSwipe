@@ -13,13 +13,13 @@ struct CachedAsyncImageView: View {
         ZStack {
             // Prevent white flashes while loading.
             Color.black.opacity(0.04)
+                .drawingGroup()
 
             if let uiImage {
                 Image(uiImage: uiImage)
                     .resizable()
-                    // For cards we want to fill and crop; for detail views callers can pick .fit.
-                    .aspectRatio(contentMode: contentMode)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .scaledToFillIfNeeded(contentMode)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .clipped()
             } else if let errorMessage {
                 ContentUnavailableView("Couldn’t load image", systemImage: "wifi.exclamationmark", description: Text(errorMessage))
@@ -28,6 +28,7 @@ struct CachedAsyncImageView: View {
                     .progressViewStyle(.circular)
             }
         }
+        .drawingGroup()
         .ifLet(cornerRadius) { view, radius in
             view.clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         }
@@ -50,6 +51,20 @@ private extension View {
             transform(self, value)
         } else {
             self
+        }
+    }
+}
+
+private extension Image {
+    @ViewBuilder
+    func scaledToFillIfNeeded(_ contentMode: ContentMode) -> some View {
+        switch contentMode {
+        case .fill:
+            self.scaledToFill()
+        case .fit:
+            self.scaledToFit()
+        @unknown default:
+            self.scaledToFill()
         }
     }
 }
