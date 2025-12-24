@@ -80,7 +80,7 @@ final class SwipeDeckViewModel: ObservableObject {
             // Clear caches.
             prefetchTask?.cancel()
             prefetchTask = nil
-            ImagePipeline.shared.clearMemory()
+            await ImagePipeline.shared.clearMemory()
             await ImagePipeline.shared.clearDisk()
 
             // Reset UI state and reload.

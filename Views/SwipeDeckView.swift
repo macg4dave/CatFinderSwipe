@@ -129,6 +129,7 @@ struct SwipeDeckView: View {
 
                     // Underlying interactive card (this is always the *current* card).
                     CatCardView(card: current, backgroundColor: viewModel.backgroundColor)
+                        .accessibilityIdentifier("SwipeDeck.CurrentCard")
                         .frame(width: cardWidth, height: cardHeight)
                         .clipShape(shape)
                         .contentShape(shape)
@@ -143,13 +144,14 @@ struct SwipeDeckView: View {
                                 }
                                 .onEnded { value in
                                     guard !isSwipeAnimating else { return }
-                                    handleDragEnded(value, containerWidth: proxy.size.width)
+                                    handleDragEnded(value, containerWidth: proxy.size.width, containerHeight: proxy.size.height)
                                 }
                         )
 
                     // Swipe overlay sits above the deck while animating out.
                     if let swipingCard {
                         CatCardView(card: swipingCard, backgroundColor: viewModel.backgroundColor)
+                            .accessibilityIdentifier("SwipeDeck.SwipingOverlay")
                             .frame(width: cardWidth, height: cardHeight)
                             .clipShape(shape)
                             .contentShape(shape)
@@ -174,7 +176,7 @@ struct SwipeDeckView: View {
         }
     }
 
-    private func handleDragEnded(_ value: DragGesture.Value, containerWidth: CGFloat) {
+    private func handleDragEnded(_ value: DragGesture.Value, containerWidth: CGFloat, containerHeight: CGFloat) {
         let translation = value.translation
 
         let offscreenX = max(600, containerWidth * 1.25)
@@ -224,28 +226,43 @@ struct SwipeDeckView: View {
         } else {
             // "Fall" / continue drifting in the release direction instead of snapping back.
             // This preserves the swipe flow: no decision is recorded for small drags.
-            let dx = translation.width
-            let dy = translation.height
+            let dxOriginal = translation.width
+            let dyOriginal = translation.height
 
             // If the user barely moved, treat it like a cancel and gently settle.
             let minDrift: CGFloat = 14
-            guard abs(dx) > minDrift || abs(dy) > minDrift else {
+            guard abs(dxOriginal) > minDrift || abs(dyOriginal) > minDrift else {
                 withAnimation { dragOffset = .zero }
                 return
             }
 
-            // Push the card off-screen in the same general direction.
-            // Use horizontal direction if present; otherwise choose based on vertical movement.
-            let xDirection: CGFloat = dx == 0 ? (dy >= 0 ? 1 : -1) : (dx >= 0 ? 1 : -1)
-            let endX: CGFloat = 800 * xDirection
-            let endY: CGFloat = dy + (dy >= 0 ? 600 : -600)
+            // Animate the current card out using the same overlay technique as full swipes.
+            swipingCard = viewModel.current
+            swipeOverlayOffset = translation
+            isSwipeAnimating = true
 
-            withAnimation(.easeIn(duration: 0.22)) {
-                dragOffset = CGSize(width: endX, height: endY)
+            // Reset the interactive card position so the deck stays stable.
+            dragOffset = .zero
+
+            // Drive a deterministic off-screen target so the card truly leaves the viewport.
+            // If there's meaningful vertical motion, bias toward falling down; otherwise drift diagonally.
+            let xDirection: CGFloat = dxOriginal == 0 ? 1 : (dxOriginal >= 0 ? 1 : -1)
+            let endX = offscreenX * xDirection
+            let endY: CGFloat
+            if abs(dyOriginal) > 20 {
+                endY = (containerHeight * 1.25) * (dyOriginal >= 0 ? 1 : -1)
+            } else {
+                endY = containerHeight * 1.10
             }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                dragOffset = .zero
+            withAnimation(.easeIn(duration: Layout.swipeAnimationDuration)) {
+                swipeOverlayOffset = CGSize(width: endX, height: endY)
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + Layout.swipeAnimationDuration) {
+                swipingCard = nil
+                swipeOverlayOffset = .zero
+                isSwipeAnimating = false
             }
         }
     }
