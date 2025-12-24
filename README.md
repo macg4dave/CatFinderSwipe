@@ -9,25 +9,21 @@ CatFinderSwipe is every cat lovers dream! built to be simple, fun and easy to us
 - **Swipe right** → Like and add to **Favourites**
 - **Swipe left** → Skip
 - **Favourites** View and share from Favourites
-- Everything is saved **on your phone** (no account, no analytics)
+- Everything is saved **on your phone** (no account, no analytics, no tracking)
 
 ---
 
-## Screenshots (placeholders)
-
-> Add your images into `/img/` and replace these files.
-
-# Find new cats
+## Find new cats
 
 ![Swipeing](img/swipe.png)
 
-# View your favourites
+## View your favourites
 
 ![Favourites](img/favourites.png)
 
-# Share a cat
+## Share a cat
 
-![Share screen placeholder](img/share.png)
+![Share screen placeholder](img/sharecat.png)
 
 ---
 
@@ -163,10 +159,16 @@ That’s normal. Plug your phone in and press **Run (⌘R)** again in Xcode.
 
 ---
 
-## Developer notes (optional)
-
-- DocC documentation: `CatFinderSwipe/Documentation.docc`
-- Device test script: `bash scripts/test_on_device.sh`
+## Developer notes
+- Requires Xcode 15+
+- SwiftUI + SwiftData
+- iOS 16+ (due to SwiftData)
+- Uses MVVM architecture
+- Networking with URLSession
+- Image caching with NSCache
+- Unit tests for ViewModels
+- UI tests for main user flows
+- Device test script: `bash scripts/test_on_device.sh` (requires `xcodebuild`)
 
 ## Thanks to
 
