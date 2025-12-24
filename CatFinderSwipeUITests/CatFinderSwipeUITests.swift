@@ -38,4 +38,24 @@ final class CatFinderSwipeUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+
+    @MainActor
+    func testSmallDragTriggersFallingAnimationOverlay() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let currentCard = app.otherElements["SwipeDeck.CurrentCard"]
+
+        // Wait for the first card to appear.
+        XCTAssertTrue(currentCard.waitForExistence(timeout: 10))
+
+        // Perform a small drag (below the swipe decision threshold) to trigger the fall/drift animation.
+        let start = currentCard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = currentCard.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.65))
+        start.press(forDuration: 0.05, thenDragTo: end)
+
+        // The falling path uses an overlay for the outgoing animation.
+        let overlay = app.otherElements["SwipeDeck.SwipingOverlay"]
+        XCTAssertTrue(overlay.waitForExistence(timeout: 2.0))
+    }
 }
