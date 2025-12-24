@@ -74,7 +74,7 @@ This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + Sw
 
 ## Milestone 6: Layout & interactions
 
-- [x] Card layout: consistent rounded rectangle (95% wide, ~75% tall)
+- [x] Card layout: consistent rounded rectangle (95% wide, ~90% tall)
   - [ ] Verify layout on all supported device sizes and orientations.
 - [x] Swiped images do not change size between cards
   - [ ] Verify size stability across multiple swipes.
@@ -99,16 +99,13 @@ This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + Sw
 ## Milestone 8: Sharing
 
 - [x] Share a favorite cat image from Favorites via Apple share sheet
-  - [ ] Verify Share opens on device and includes image.
 
+## Milestone 9: Fine-tuning
 
-## Milestone 9: Widgets & export
-
-- [x] Home Screen widget: "Random Favorite" / "Recent Favorite"
-  - [ ] Create WidgetKit extension target in Xcode and enable App Group data sharing.
-  - [ ] Verify widget reads favorites.json and renders.
-- [x] Save to Photos (with permission handling and clear UX)
-  - [ ] Add `NSPhotoLibraryAddUsageDescription` to Info.plist and verify on device.
+- [x] Swiped card offscreen before loading the next one
+  - [ ] Verify smooth transition without flicker, blank states, or loading the next card in the same card view.
+- [x] Optimize network requests to avoid redundant fetches when rapidly swiping (load 10 images ahead)
+- [x] Change image height to 90% of screen height
 
 ## Non-goals (for now)
 

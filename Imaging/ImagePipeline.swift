@@ -50,6 +50,10 @@ actor ImagePipeline {
         _ = try? await image(for: url)
     }
 
+    func prefetch(_ url: URL, maxPixelSize: Int?) async {
+        _ = try? await image(for: url, maxPixelSize: maxPixelSize)
+    }
+
     func clearMemory() {
         memory.removeAll()
     }

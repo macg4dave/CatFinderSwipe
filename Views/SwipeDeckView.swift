@@ -3,10 +3,16 @@ import SwiftData
 
 struct SwipeDeckView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.displayScale) private var displayScale
 
     @StateObject private var viewModel: SwipeDeckViewModel
 
     @State private var dragOffset: CGSize = .zero
+
+    // Swipe animation overlay (prevents the current card from changing content mid-swipe).
+    @State private var swipingCard: CatCard?
+    @State private var swipeOverlayOffset: CGSize = .zero
+    @State private var isSwipeAnimating: Bool = false
 
     // Milestone 7: fun feedback.
     @State private var likeBurstTrigger: Int = 0
@@ -14,8 +20,10 @@ struct SwipeDeckView: View {
 
     private enum Layout {
         static let cardWidthFraction: CGFloat = 0.95
-        static let cardHeightFraction: CGFloat = 0.75
+        static let cardHeightFraction: CGFloat = 0.90
         static let cardCornerRadius: CGFloat = 20
+        static let swipeThreshold: CGFloat = 120
+        static let swipeAnimationDuration: TimeInterval = 0.22
     }
 
     init(api: CatAPIClientProtocol = CataasAPIClient()) {
@@ -109,6 +117,13 @@ struct SwipeDeckView: View {
                 let cardHeight = proxy.size.height * Layout.cardHeightFraction
                 let shape = RoundedRectangle(cornerRadius: Layout.cardCornerRadius, style: .continuous)
 
+                // Provide the view model a pixel-size hint so prefetch warms the right cache variant.
+                let maxPoints = max(cardWidth, cardHeight)
+                let rawPixels = Int(ceil(maxPoints * displayScale))
+                let clampedPixels = max(256, min(2048, rawPixels))
+                let bucket = 128
+                let pixelBucket = ((clampedPixels + bucket - 1) / bucket) * bucket
+
                 ZStack {
                     if let next = viewModel.next {
                         CatCardView(card: next, backgroundColor: viewModel.backgroundColor)
@@ -120,6 +135,7 @@ struct SwipeDeckView: View {
                             .opacity(0.6)
                     }
 
+                    // Underlying interactive card (this is always the *current* card).
                     CatCardView(card: current, backgroundColor: viewModel.backgroundColor)
                         .frame(width: cardWidth, height: cardHeight)
                         .clipShape(shape)
@@ -130,12 +146,33 @@ struct SwipeDeckView: View {
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
+                                    guard !isSwipeAnimating else { return }
                                     dragOffset = value.translation
                                 }
                                 .onEnded { value in
-                                    handleDragEnded(value)
+                                    guard !isSwipeAnimating else { return }
+                                    handleDragEnded(value, containerWidth: proxy.size.width)
                                 }
                         )
+
+                    // Swipe overlay sits above the deck while animating out.
+                    if let swipingCard {
+                        CatCardView(card: swipingCard, backgroundColor: viewModel.backgroundColor)
+                            .frame(width: cardWidth, height: cardHeight)
+                            .clipShape(shape)
+                            .contentShape(shape)
+                            .overlay(shape.strokeBorder(.quaternary))
+                            .offset(swipeOverlayOffset)
+                            .rotationEffect(.degrees(Double(swipeOverlayOffset.width / 20)))
+                            .allowsHitTesting(false)
+                            .zIndex(5)
+                    }
+                }
+                .onAppear {
+                    viewModel.updatePrefetchMaxPixelSize(pixelBucket)
+                }
+                .onChange(of: proxy.size) { _, _ in
+                    viewModel.updatePrefetchMaxPixelSize(pixelBucket)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
@@ -145,25 +182,52 @@ struct SwipeDeckView: View {
         }
     }
 
-    private func handleDragEnded(_ value: DragGesture.Value) {
-        let threshold: CGFloat = 120
+    private func handleDragEnded(_ value: DragGesture.Value, containerWidth: CGFloat) {
         let translation = value.translation
 
-        if translation.width > threshold {
-            withAnimation { dragOffset = CGSize(width: 800, height: translation.height) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                dragOffset = .zero
-                Haptics.swipeCommitLike()
-                likeBurstTrigger += 1
-                viewModel.swipeRight()
+        let offscreenX = max(600, containerWidth * 1.25)
+
+        if translation.width > Layout.swipeThreshold {
+            // Capture the current card into an overlay so it can animate out without changing content.
+            swipingCard = viewModel.current
+            swipeOverlayOffset = translation
+            isSwipeAnimating = true
+
+            // Immediately reset the interactive card position (the deck will advance under the overlay).
+            dragOffset = .zero
+
+            withAnimation(.easeOut(duration: Layout.swipeAnimationDuration)) {
+                swipeOverlayOffset = CGSize(width: offscreenX, height: translation.height)
             }
-        } else if translation.width < -threshold {
-            withAnimation { dragOffset = CGSize(width: -800, height: translation.height) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                dragOffset = .zero
-                Haptics.swipeCommitNope()
-                nopeBurstTrigger += 1
-                viewModel.swipeLeft()
+
+            Haptics.swipeCommitLike()
+            likeBurstTrigger += 1
+            viewModel.swipeRight()
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + Layout.swipeAnimationDuration) {
+                swipingCard = nil
+                swipeOverlayOffset = .zero
+                isSwipeAnimating = false
+            }
+        } else if translation.width < -Layout.swipeThreshold {
+            swipingCard = viewModel.current
+            swipeOverlayOffset = translation
+            isSwipeAnimating = true
+
+            dragOffset = .zero
+
+            withAnimation(.easeOut(duration: Layout.swipeAnimationDuration)) {
+                swipeOverlayOffset = CGSize(width: -offscreenX, height: translation.height)
+            }
+
+            Haptics.swipeCommitNope()
+            nopeBurstTrigger += 1
+            viewModel.swipeLeft()
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + Layout.swipeAnimationDuration) {
+                swipingCard = nil
+                swipeOverlayOffset = .zero
+                isSwipeAnimating = false
             }
         } else {
             withAnimation { dragOffset = .zero }
