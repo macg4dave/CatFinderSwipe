@@ -39,13 +39,13 @@ final class SwipeDeckViewModel: ObservableObject {
     /// Optional size hint so prefetch uses the same cache variant as the on-screen card.
     private var prefetchMaxPixelSize: Int?
 
-    init(api: CatAPIClientProtocol, store: CatDecisionStore, networkMonitor: NetworkMonitor = NetworkMonitor()) {
+    init(api: CatAPIClientProtocol, store: CatDecisionStore, networkMonitor: NetworkMonitor? = nil) {
         self.api = api
         self.store = store
-        self.networkMonitor = networkMonitor
+        self.networkMonitor = networkMonitor ?? NetworkMonitor()
 
         // Keep a simple offline flag for UI messaging.
-        networkMonitor.$isConnected
+        self.networkMonitor.$isConnected
             .receive(on: DispatchQueue.main)
             .sink { [weak self] connected in
                 self?.isOffline = !connected

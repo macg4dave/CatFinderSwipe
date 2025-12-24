@@ -99,6 +99,7 @@ This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + Sw
 ## Milestone 8: Sharing
 
 - [x] Share a favorite cat image from Favorites via Apple share sheet
+  - [ ] Verify Share opens on device and includes image.
 
 ## Milestone 9: Fine-tuning
 

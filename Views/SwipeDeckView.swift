@@ -85,14 +85,6 @@ struct SwipeDeckView: View {
             } label: {
                 Label("Favorites", systemImage: "heart.fill")
             }
-
-#if DEBUG
-            Button {
-                viewModel.clearDataAndReload()
-            } label: {
-                Label("Clear Data", systemImage: "trash")
-            }
-#endif
         }
         .onAppear {
             // Swap in the real store backed by the app’s ModelContext.
@@ -230,7 +222,31 @@ struct SwipeDeckView: View {
                 isSwipeAnimating = false
             }
         } else {
-            withAnimation { dragOffset = .zero }
+            // "Fall" / continue drifting in the release direction instead of snapping back.
+            // This preserves the swipe flow: no decision is recorded for small drags.
+            let dx = translation.width
+            let dy = translation.height
+
+            // If the user barely moved, treat it like a cancel and gently settle.
+            let minDrift: CGFloat = 14
+            guard abs(dx) > minDrift || abs(dy) > minDrift else {
+                withAnimation { dragOffset = .zero }
+                return
+            }
+
+            // Push the card off-screen in the same general direction.
+            // Use horizontal direction if present; otherwise choose based on vertical movement.
+            let xDirection: CGFloat = dx == 0 ? (dy >= 0 ? 1 : -1) : (dx >= 0 ? 1 : -1)
+            let endX: CGFloat = 800 * xDirection
+            let endY: CGFloat = dy + (dy >= 0 ? 600 : -600)
+
+            withAnimation(.easeIn(duration: 0.22)) {
+                dragOffset = CGSize(width: endX, height: endY)
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                dragOffset = .zero
+            }
         }
     }
 }

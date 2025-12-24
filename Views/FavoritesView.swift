@@ -11,8 +11,6 @@ struct FavoritesView: View {
     @State private var isShowingShareSheet: Bool = false
     @State private var shareErrorMessage: String?
 
-    @State private var isSavingToPhotos: Bool = false
-
     private let spacing: CGFloat = 12
     private let horizontalPadding: CGFloat = 16
 
@@ -46,14 +44,6 @@ struct FavoritesView: View {
                                     }
                                 } label: {
                                     Label("Share", systemImage: "square.and.arrow.up")
-                                }
-
-                                Button {
-                                    Task {
-                                        await saveToPhotosFromGrid(url: url)
-                                    }
-                                } label: {
-                                    Label("Save to Photos", systemImage: "square.and.arrow.down")
                                 }
 
                                 Button(role: .destructive) {
@@ -128,22 +118,6 @@ struct FavoritesView: View {
         // Auto-clear error after a bit? Keep it simple: clear immediately.
         self.shareErrorMessage = nil
     }
-
-    @MainActor
-    private func saveToPhotosFromGrid(url: URL) async {
-        shareErrorMessage = nil
-        guard !isSavingToPhotos else { return }
-        isSavingToPhotos = true
-        defer { isSavingToPhotos = false }
-
-        do {
-            let image = try await ImagePipeline.shared.image(for: url, maxPixelSize: 2048)
-            try await PhotoLibrarySaver.shared.saveImage(image)
-            shareErrorMessage = "Saved to Photos."
-        } catch {
-            shareErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        }
-    }
 }
 
 struct FavoriteDetailView: View {
@@ -156,8 +130,6 @@ struct FavoriteDetailView: View {
     @State private var shareURL: URL?
     @State private var isShowingShareSheet: Bool = false
     @State private var shareErrorMessage: String?
-
-    @State private var isSavingToPhotos: Bool = false
 
     var body: some View {
         VStack {
@@ -179,17 +151,6 @@ struct FavoriteDetailView: View {
         .navigationTitle("Favorite")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if isSavingToPhotos {
-                ProgressView()
-            } else {
-                Button {
-                    Task { await saveToPhotos() }
-                } label: {
-                    Label("Save", systemImage: "square.and.arrow.down")
-                }
-                .disabled(favorite.imageURL == nil)
-            }
-
             if isPreparingShare {
                 ProgressView()
             } else {
@@ -213,26 +174,6 @@ struct FavoriteDetailView: View {
             if let shareURL {
                 ShareSheet(activityItems: [shareURL])
             }
-        }
-    }
-
-    @MainActor
-    private func saveToPhotos() async {
-        shareErrorMessage = nil
-        guard let imageURL = favorite.imageURL else {
-            shareErrorMessage = "No image URL available to save."
-            return
-        }
-
-        isSavingToPhotos = true
-        defer { isSavingToPhotos = false }
-
-        do {
-            let image = try await ImagePipeline.shared.image(for: imageURL, maxPixelSize: 2048)
-            try await PhotoLibrarySaver.shared.saveImage(image)
-            shareErrorMessage = "Saved to Photos."
-        } catch {
-            shareErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 
@@ -273,5 +214,6 @@ struct FavoriteDetailView: View {
         guard let shareURL else { return }
         try? FileManager.default.removeItem(at: shareURL)
         self.shareURL = nil
+        self.shareErrorMessage = nil
     }
 }

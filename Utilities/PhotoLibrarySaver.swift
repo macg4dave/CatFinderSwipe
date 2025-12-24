@@ -31,7 +31,7 @@ final class PhotoLibrarySaver {
             throw PhotoLibrarySaverError.notAuthorized
         }
 
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHPhotoLibrary.shared().performChanges {
                 PHAssetChangeRequest.creationRequestForAsset(from: image)
             } completionHandler: { success, error in
@@ -40,7 +40,7 @@ final class PhotoLibrarySaver {
                     return
                 }
                 if success {
-                    continuation.resume()
+                    continuation.resume(returning: ())
                 } else {
                     continuation.resume(throwing: PhotoLibrarySaverError.saveFailed)
                 }
