@@ -87,7 +87,7 @@ This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + Sw
 - [x] Favorites grid layout (thumbnails only; no filenames)
   - [ ] Verify grid spacing and tap targets on small screens.
 - [x] Remove favorites (unfavorite) from the Favorites screen
-  - [ ] Verify remove works from grid and detail.
+  - [x] Verify remove works from grid and detail.
 
 ## Milestone 7: Fun feedback
 
@@ -104,7 +104,7 @@ This roadmap keeps the project **100% Swift + Xcode** (SwiftUI + URLSession + Sw
 ## Milestone 9: Fine-tuning
 
 - [x] Swiped card offscreen before loading the next one
-  - [ ] Verify smooth transition without flicker, blank states, or loading the next card in the same card view.
+  - [x] Verify smooth transition without flicker, blank states, or loading the next card in the same card view.
 - [x] Optimize network requests to avoid redundant fetches when rapidly swiping (load 10 images ahead)
 - [x] Change image height to 90% of screen height
 

@@ -1,6 +1,6 @@
 # CatFinderSwipe
 
-## Swipe through random cats. Save your favourites, Share the best ones!
+## Swipe through random cats. Save your favourites, Share the best ones
 
 ![CatFinderSwipe hero screenshot placeholder](img/hero.png)
 
@@ -138,14 +138,10 @@ Go back to **Step 5** and make sure:
 
 ### The app shows no cats / errors
 
-CatFinderSwipe loads cat photos from:
-
-- `https://cataas.com/`
-
 Check:
 
 - Your phone has internet
-- Your Wi-Fi isn’t blocking that site
+- Your Wi-Fi isn’t blocking access to **cataas.com**
 
 ### The app stops opening after a few days (free Apple ID)
 
@@ -165,3 +161,11 @@ That’s normal. Plug your phone in and press **Run (⌘R)** again in Xcode.
 
 - DocC documentation: `CatFinderSwipe/Documentation.docc`
 - Device test script: `bash scripts/test_on_device.sh`
+
+## Thanks to
+
+[Cataas](https://cataas.com/) for the cat images API!
+
+## License
+
+CatFinderSwipe is released under the GPL License. See `LICENSE` for details.
