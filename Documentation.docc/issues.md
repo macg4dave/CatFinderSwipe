@@ -1,4 +1,15 @@
-[] swiped card should "fall" after relesae not snap back
- [] remove trash icon from main screen
- [] remove save to device as it requies too meny permissions
- 
+P1 | Due to a Git sync issue,  all files had to be re-added to the repo, causing loss of original creation dates. we need to check that all file are still refferenced correctly in the project and build settings. | HIGH | N/A | N/A | N/A | N/A | Ensure all files are included in the Xcode project and build phases after re-adding to repo.
+
+P2 | Title: Background refill error blocks deck despite buffered cards | Impact: Swiping stops even when buffered cards exist | Repro: Simulate a transient network error during background refill while current card is visible | Expected: Continue swiping with buffered cards and surface error non-blocking | Actual: errorMessage takes precedence in UI, blocking deck | Location: Views/SwipeDeckView.swift (line 98), ViewModels/SwipeDeckViewModel.swift (line 193) | Notes: Consider separating blocking vs non-blocking errors in the view state
+
+P3 | Title: StableColor is not stable across launches | Impact: Background colors change between launches despite "stable" intent | Repro: Relaunch app and observe same key produces different color | Expected: Deterministic color per key across launches | Actual: hashValue is randomized per process | Location: Utilities/StableColor.swift (line 22) | Notes: Use a stable hash (e.g., SHA256) instead of hashValue
+
+P3 | Title: Placeholder ModelContainer uses try! and can crash before UI appears | Impact: App can crash during view init on container creation failure | Repro: Force ModelContainer creation to fail (e.g., corrupted store) | Expected: Fail gracefully or defer creation | Actual: try! triggers crash | Location: Views/SwipeDeckView.swift (line 33) | Notes: Replace try! with safe fallback or error state
+
+P3 | Title: Unit tests are placeholder only | Impact: No automated coverage for buffering, persistence, or offline behavior | Repro: Open test target; only example test exists | Expected: Tests for swipe buffering, persistence, offline handling | Actual: Placeholder test file | Location: CatFinderSwipeTests/CatFinderSwipeTests.swift (line 11) | Notes: Add Swift Testing/XCTest coverage for core behaviors
+
+P3 | Title: Background color does not change when buffered card becomes current | Impact: Visual feedback feels stale across swipes | Repro: Swipe through buffered cards; background stays the same | Expected: Background color changes on each new current card | Actual: Same background used for current/next until explicit update | Location: Views/SwipeDeckView.swift (uses shared backgroundColor), ViewModels/SwipeDeckViewModel.swift (backgroundColor updates) | Notes: Consider per-card colors or update on current change
+
+P3 | Title: Documentation contains placeholder content | Impact: Docs are incomplete and unhelpful | Repro: Read DocC docs; placeholders remain | Expected: Real project-specific content | Actual: Placeholder text persists | Location: Documentation.docc/issues.md, Documentation.docc/Documentation.md | Notes: Replace with actual project details and screenshots
+
+P3 | Title: Missing developer notes in DocC | Impact: Contributors lack guidance on architecture/testing | Repro: Read DocC docs; no tech stack or testing notes | Expected: Clear notes on stack, architecture, testing approach | Actual: Missing section | Location: Documentation.docc/Documentation.md | Notes: Add brief developer notes section
