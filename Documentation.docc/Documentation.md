@@ -17,11 +17,17 @@ CatFinderSwipe is every cat lovers dream! built to be simple, fun and easy to us
 
 > Add your images into `/img/` and replace these files.
 
-| What | Placeholder |
-|---|---|
-| Swiping | ![Swipe screen placeholder](img/swipe.png) |
-| Favourites grid | ![Favourites screen placeholder](img/favourites.png) |
-| Cat detail + Share | ![Share screen placeholder](img/share.png) |
+# Find new cats
+
+![Swipeing](img/swipe.png)
+
+# View your favourites
+
+![Favourites](img/favourites.png)
+
+# Share a cat
+
+![Share screen placeholder](img/share.png)
 
 ---
 
